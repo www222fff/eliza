@@ -28,7 +28,7 @@ jobs:
       # Step 4: 
       - name: Notify Phala Cloud
         run: |
-          curl -X POST https://cloud-api.phala.networ/api/v1/cvms/from_cvm_configuration \
+          curl -X POST https://cloud-api.phala.network/api/v1/cvms/from_cvm_configuration \
             -H "Authorization: Bearer ${{ secrets.PHALA_CLOUD_API_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{
