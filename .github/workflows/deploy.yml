@@ -10,25 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: 检出代码
+      # Step 1:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: 登录到 GitHub Container Registry
+      # Step 2:
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # Step 3: 构建并推送 Docker 镜像到 GitHub Container Registry
+      # Step 3:
       - name: Build and Push Docker Image
         run: |
           IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/eliza:latest
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
 
-      # Step 4: 通知 Phala Cloud 部署新镜像
+      # Step 4: 
       - name: Notify Phala Cloud
         run: |
-          curl -X POST hhttps://cloud-api.phala.networ/api/v1/cvms/from_cvm_configuration \
+          curl -X POST https://cloud-api.phala.networ/api/v1/cvms/from_cvm_configuration \
             -H "Authorization: Bearer ${{ secrets.PHALA_CLOUD_API_KEY }}" \
             -H "Content-Type: application/json" \
             -d '{
