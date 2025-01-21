@@ -25,47 +25,81 @@ jobs:
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
 
-      # Step 4: 
+      # Step 4:
       - name: Notify Phala Cloud
         run: |
-          curl -X POST https://cloud-api.phala.network/api/v1/cvms/from_cvm_configuration \
-            -H "Authorization: Bearer ${{ secrets.PHALA_CLOUD_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{
-              "user_id": 123, 
-              "name": "eliza-deployment",
-              "image": "ghcr.io/${{ github.repository_owner }}/eliza:latest",
-              "vcpu": 2,
-              "memory": 4096,
-              "disk_size": 10,
-              "compose_manifest": {
-                "docker_compose_file": "",
-                "docker_config": {
-                  "password": "${{ secrets.DOCKER_REGISTRY_PASSWORD }}",
-                  "registry": "ghcr.io",
-                  "username": "${{ secrets.DOCKER_REGISTRY_USERNAME }}"
-                },
-                "features": ["kms", "tproxy-net"],
-                "kms_enabled": true,
-                "manifest_version": 1,
-                "name": "eliza-app",
-                "public_logs": false,
-                "public_sysinfo": false,
-                "runner": "docker-compose",
-                "salt": "some-salt",
-                "tproxy_enabled": true,
-                "version": "1.0.0"
-              },
-              "ports": [
-                {
-                  "protocol": "tcp",
-                  "host_port": 8080,
-                  "vm_port": 80
-                }
-              ],
-              "encrypted_env": "",
-              "app_id_salt": "some-app-id-salt",
-              "teepod_id": 1,
-              "listed": false
-            }'
+          # Define docker_compose
+          DOCKER_COMPOSE=$(cat <<EOF
+            version: '3'
+            services:
+              eliza:
+                image: ghcr.io/${{ github.repository_owner }}/eliza:latest
+                container_name: eliza
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    cd /app                    
+                    pnpm start --character=characters/trump.character.json
+                ports:
+                  - "3000:3000"
+                volumes:
+                  - /var/run/tappd.sock:/var/run/tappd.sock
+                  - tee:/app/db.sqlite
+                environment:
+                  - TEE_MODE=PRODUCTION
+                  - REDPILL_API_KEY=\${REDPILL_API_KEY}
+                  - SMALL_REDPILL_MODEL=gpt-4o-mini
+                  - MEDIUM_REDPILL_MODEL=gpt-4o-mini
+                  - LARGE_REDPILL_MODEL=gpt-4o-mini 
+                  - REDPILL_MODEL=gpt-4o-mini
+                  - TWITTER_USERNAME=${TWITTER_USERNAME_ENV}
+                  - TWITTER_PASSWORD=${TWITTER_PASSWORD_ENV}
+                  - TWITTER_EMAIL=${TWITTER_EMAIL_ENV}
+                  - TWITTER_POLL_INTERVAL=120
+                restart: always
+            volumes:
+              tee:
+          EOF
+          )
 
+          # Notify Phala Cloud  
+          curl -X POST https://cloud-api.phala.network/api/v1/cvms/from_cvm_configuration \
+          -H "Authorization: Bearer $PHALA_CLOUD_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "name": "danny-eliza",
+            "compose_manifest": {
+              "name": "danny-eliza",
+              "features": ["kms", "tproxy-net"],
+              "docker_compose_file": "$DOCKER_COMPOSE"
+            },
+            "vcpu": 2,
+            "memory": 4096,
+            "disk_size": 40,
+            "teepod_id": 2,
+            "image": "dstack-dev-0.3.4"
+            "advanced_features": {
+              "tproxy": true,
+              "kms": true,
+              "public_sys_info": true,
+              "public_logs": true,
+              "docker_config": {
+                "password": "$DOCKER_REGISTRY_PASSWORD",
+                "registry": "ghcr.io",
+                "username": "$DOCKER_REGISTRY_USERNAME"
+              },
+              "listed": false
+            }
+            "encrypted_env": $ENCRYPTED_ENV,
+            "app_env_encrypt_pubkey": $APP_ENV_ENCRYPT_PUBKEY,
+            "app_id_salt": $APP_ID_SALT
+          }'
+
+env:
+  PHALA_CLOUD_API_KEY: ${{ secrets.PHALA_CLOUD_API_KEY }}
+  DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
+  DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+  ENCRYPTED_ENV: ${{ secrets.ENCRYPTED_ENV }}
+  APP_ENV_ENCRYPT_PUBKEY: ${{ secrets.APP_ENV_ENCRYPT_PUBKEY }}
+  APP_ID_SALT: ${{ secrets.APP_ID_SALT }}
