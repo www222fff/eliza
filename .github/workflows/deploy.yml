@@ -40,31 +40,25 @@ jobs:
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # Step 6: Build Docker Image
+      # Step 6: Build Docker Image and Push
       - name: Build Docker Image
         run: |
           IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/eliza:latest
-          docker buildx build --cache-from type=local,src=/tmp/.buildx-cache --cache-to type=local,dest=/tmp/.buildx-cache -t $IMAGE_NAME .
+          docker buildx build --cache-from type=local,src=/tmp/.buildx-cache --cache-to type=local,dest=/tmp/.buildx-cache -t $IMAGE_NAME --push .
 
-      # Step 7: Push Docker Image
-      - name: Push Docker Image
-        run: |
-          IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/eliza:latest
-          docker push $IMAGE_NAME
-
-      # Step 8: Set up Python
+      # Step 7: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.8'
 
-      # Step 9: Install dependencies
+      # Step 8: Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Step 10: Run deploy script
+      # Step 9: Run deploy script
       - name: Run deploy script
         env:
           REDPILL_API_KEY: ${{ secrets.REDPILL_API_KEY }}
