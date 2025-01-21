@@ -14,92 +14,110 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2:
+      # Step 2: Cache pnpm dependencies
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      # Step 3: Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      # Step 4: Cache Docker layers
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      # Step 5: Log in to GitHub Container Registry
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # Step 3:
+      # Step 6: Build and Push Docker Image
       - name: Build and Push Docker Image
         run: |
           IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/eliza:latest
-          docker build -t $IMAGE_NAME .
-          docker push $IMAGE_NAME
+          docker buildx build --cache-from type=local,src=/tmp/.buildx-cache --cache-to type=local,dest=/tmp/.buildx-cache --push -t $IMAGE_NAME .
 
-      # Step 4:
-      - name: Notify Phala Cloud
+      # Step 7: Prepare DOCKER_COMPOSE
+     - name: Prepare DOCKER_COMPOSE
+        id: prepare_docker_compose
         run: |
-          # Define docker_compose
           DOCKER_COMPOSE=$(cat <<EOF
-            version: '3'
-            services:
-              eliza:
-                image: ghcr.io/${{ github.repository_owner }}/eliza:latest
-                container_name: eliza
-                command:
-                  - /bin/sh
-                  - -c
-                  - |
-                    cd /app                    
-                    pnpm start --character=characters/trump.character.json
-                ports:
-                  - "3000:3000"
-                volumes:
-                  - /var/run/tappd.sock:/var/run/tappd.sock
-                  - tee:/app/db.sqlite
-                environment:
-                  - TEE_MODE=PRODUCTION
-                  - REDPILL_API_KEY=\${REDPILL_API_KEY}
-                  - SMALL_REDPILL_MODEL=gpt-4o-mini
-                  - MEDIUM_REDPILL_MODEL=gpt-4o-mini
-                  - LARGE_REDPILL_MODEL=gpt-4o-mini 
-                  - REDPILL_MODEL=gpt-4o-mini
-                  - TWITTER_USERNAME=${TWITTER_USERNAME_ENV}
-                  - TWITTER_PASSWORD=${TWITTER_PASSWORD_ENV}
-                  - TWITTER_EMAIL=${TWITTER_EMAIL_ENV}
-                  - TWITTER_POLL_INTERVAL=120
-                restart: always
-            volumes:
-              tee:
+          version: '3'
+          services:
+            eliza:
+              image: ghcr.io/${{ github.repository_owner }}/eliza:latest
+              container_name: eliza
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  cd /app
+                  pnpm start --character=characters/trump.character.json
+              ports:
+                - "3000:3000"
+              volumes:
+                - /var/run/tappd.sock:/var/run/tappd.sock
+                - tee:/app/db.sqlite
+              environment:
+                - TEE_MODE=PRODUCTION
+                - REDPILL_API_KEY=${REDPILL_API_KEY}
+                - SMALL_REDPILL_MODEL=gpt-4o-mini
+                - MEDIUM_REDPILL_MODEL=gpt-4o-mini
+                - LARGE_REDPILL_MODEL=gpt-4o-mini
+                - REDPILL_MODEL=gpt-4o-mini
+                - TWITTER_USERNAME=${TWITTER_USERNAME}
+                - TWITTER_PASSWORD=${TWITTER_PASSWORD}
+                - TWITTER_EMAIL=${TWITTER_EMAIL}
+                - TWITTER_POLL_INTERVAL=120
+              restart: always
+          volumes:
+            tee:
           EOF
           )
+          echo "$DOCKER_COMPOSE" | jq -R -s '.' > docker_compose.json
 
-          # Notify Phala Cloud  
-          curl -X POST https://cloud-api.phala.network/api/v1/cvms/from_cvm_configuration \
-          -H "Authorization: Bearer $PHALA_CLOUD_API_KEY" \
-          -H "Content-Type: application/json" \
-          -d '{
-            "name": "danny-eliza",
-            "compose_manifest": {
-              "name": "danny-eliza",
-              "features": ["kms", "tproxy-net"],
-              "docker_compose_file": "$DOCKER_COMPOSE"
+      # Step 8: Notify Phala Cloud
+      - name: Notify Phala Cloud
+        run: |
+          JSON_PAYLOAD=$(jq -n --argfile docker_compose docker_compose.json --arg password "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" --arg registry "ghcr.io" --arg username "${{ secrets.DOCKER_REGISTRY_USERNAME }}" --arg encrypted_env "${{ secrets.ENCRYPTED_ENV }}" --arg pubkey "${{ secrets.APP_ENV_ENCRYPT_PUBKEY }}" --arg salt "${{ secrets.APP_ID_SALT }}" '{
+            name: "danny-eliza",
+            compose_manifest: {
+              name: "danny-eliza",
+              features: ["kms", "tproxy-net"],
+              docker_compose_file: $docker_compose
             },
-            "vcpu": 2,
-            "memory": 4096,
-            "disk_size": 40,
-            "teepod_id": 2,
-            "image": "dstack-dev-0.3.4",
-            "advanced_features": {
-              "tproxy": true,
-              "kms": true,
-              "public_sys_info": true,
-              "public_logs": true,
-              "docker_config": {
-                "password": "$DOCKER_REGISTRY_PASSWORD",
-                "registry": "ghcr.io",
-                "username": "$DOCKER_REGISTRY_USERNAME"
+            vcpu: 2,
+            memory: 4096,
+            disk_size: 40,
+            teepod_id: 2,
+            image: "dstack-dev-0.3.4",
+            advanced_features: {
+              tproxy: true,
+              kms: true,
+              public_sys_info: true,
+              public_logs: true,
+              docker_config: {
+                password: $password,
+                registry: $registry,
+                username: $username
               },
-              "listed": false
-            }
-            "encrypted_env": $ENCRYPTED_ENV,
-            "app_env_encrypt_pubkey": $APP_ENV_ENCRYPT_PUBKEY,
-            "app_id_salt": $APP_ID_SALT
-          }'
+              listed: false
+            },
+            encrypted_env: $encrypted_env,
+            app_env_encrypt_pubkey: $pubkey,
+            app_id_salt: $salt
+          }')
 
-env:
-  PHALA_CLOUD_API_KEY: ${{ secrets.PHALA_CLOUD_API_KEY }}
-  DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD }}
-  DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
-  ENCRYPTED_ENV: ${{ secrets.ENCRYPTED_ENV }}
-  APP_ENV_ENCRYPT_PUBKEY: ${{ secrets.APP_ENV_ENCRYPT_PUBKEY }}
-  APP_ID_SALT: ${{ secrets.APP_ID_SALT }}
+          curl -X POST https://cloud-api.phala.network/api/v1/cvms/from_cvm_configuration \
+            -H "Authorization: Bearer ${{ secrets.PHALA_CLOUD_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "$JSON_PAYLOAD"
