@@ -78,7 +78,7 @@ jobs:
             "memory": 4096,
             "disk_size": 40,
             "teepod_id": 2,
-            "image": "dstack-dev-0.3.4"
+            "image": "dstack-dev-0.3.4",
             "advanced_features": {
               "tproxy": true,
               "kms": true,
