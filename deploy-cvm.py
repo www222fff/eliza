@@ -64,7 +64,7 @@ async def deploy(teepod_id: int, image: str) -> Dict[str, Any]:
     docker_compose = """
 services:
   eliza:
-    image: ghcr.io/www222fff/eliza:latest
+    image: ghcr.io/${DOCKER_REGISTRY_USERNAME}/eliza:latest
     container_name: eliza
     command:
       - /bin/sh
@@ -118,7 +118,7 @@ volumes:
             "docker_config": {
                 "password": os.getenv('DOCKER_REGISTRY_PASSWORD'),
                 "registry": "ghcr.io",
-                "username": os.getenv('DOCKER_REGISTRY_USERNAME');,
+                "username": os.getenv('DOCKER_REGISTRY_USERNAME'),
             },
             "listed": False,
         }
@@ -140,6 +140,10 @@ volumes:
         {
             "key": "TWITTER_EMAIL",
             "value": os.getenv("TWITTER_EMAIL"),
+        },
+        {
+            "key": "DOCKER_REGISTRY_USERNAME",
+            "value": os.getenv("DOCKER_REGISTRY_USERNAME"),
         },
     ]
 
