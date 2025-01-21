@@ -47,7 +47,7 @@ jobs:
           docker buildx build --cache-from type=local,src=/tmp/.buildx-cache --cache-to type=local,dest=/tmp/.buildx-cache --push -t $IMAGE_NAME .
 
       # Step 7: Prepare DOCKER_COMPOSE
-     - name: Prepare DOCKER_COMPOSE
+      - name: Prepare DOCKER_COMPOSE
         id: prepare_docker_compose
         run: |
           DOCKER_COMPOSE=$(cat <<EOF
