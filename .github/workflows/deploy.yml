@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: checkout code
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -25,7 +25,7 @@ jobs:
 
       # Step 3: Set up Docker Buildx
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v2
 
       # Step 4: Cache Docker layers
       - name: Cache Docker layers
@@ -46,9 +46,8 @@ jobs:
           IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/eliza:latest
           docker buildx build --cache-from type=local,src=/tmp/.buildx-cache --cache-to type=local,dest=/tmp/.buildx-cache --push -t $IMAGE_NAME .
 
-      # Step 7: Prepare DOCKER_COMPOSE
-      - name: Prepare DOCKER_COMPOSE
-        id: prepare_docker_compose
+      # Step 7: Notify Phala Cloud
+      - name: Notify Phala Cloud
         run: |
           DOCKER_COMPOSE=$(cat <<EOF
           version: '3'
@@ -83,12 +82,8 @@ jobs:
             tee:
           EOF
           )
-          echo "$DOCKER_COMPOSE" | jq -R -s '.' > docker_compose.json
 
-      # Step 8: Notify Phala Cloud
-      - name: Notify Phala Cloud
-        run: |
-          JSON_PAYLOAD=$(jq -n --argfile docker_compose docker_compose.json --arg password "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" --arg registry "ghcr.io" --arg username "${{ secrets.DOCKER_REGISTRY_USERNAME }}" --arg encrypted_env "${{ secrets.ENCRYPTED_ENV }}" --arg pubkey "${{ secrets.APP_ENV_ENCRYPT_PUBKEY }}" --arg salt "${{ secrets.APP_ID_SALT }}" '{
+          JSON_PAYLOAD=$(jq -n --arg docker_compose "$DOCKER_COMPOSE" --arg password "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" --arg registry "ghcr.io" --arg username "${{ secrets.DOCKER_REGISTRY_USERNAME }}" --arg encrypted_env "${{ secrets.ENCRYPTED_ENV }}" --arg pubkey "${{ secrets.APP_ENV_ENCRYPT_PUBKEY }}" --arg salt "${{ secrets.APP_ID_SALT }}" '{
             name: "danny-eliza",
             compose_manifest: {
               name: "danny-eliza",
