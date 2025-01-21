@@ -46,73 +46,26 @@ jobs:
           IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/eliza:latest
           docker buildx build --cache-from type=local,src=/tmp/.buildx-cache --cache-to type=local,dest=/tmp/.buildx-cache --push -t $IMAGE_NAME .
 
-      # Step 7: Notify Phala Cloud
-      - name: Notify Phala Cloud
+      # Step 7: Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      # Step 8: Install dependencies
+      - name: Install dependencies
         run: |
-          DOCKER_COMPOSE=$(cat <<EOF
-          version: '3'
-          services:
-            eliza:
-              image: ghcr.io/${{ github.repository_owner }}/eliza:latest
-              container_name: eliza
-              command:
-                - /bin/sh
-                - -c
-                - |
-                  cd /app
-                  pnpm start --character=characters/trump.character.json
-              ports:
-                - "3000:3000"
-              volumes:
-                - /var/run/tappd.sock:/var/run/tappd.sock
-                - tee:/app/db.sqlite
-              environment:
-                - TEE_MODE=PRODUCTION
-                - REDPILL_API_KEY=${REDPILL_API_KEY}
-                - SMALL_REDPILL_MODEL=gpt-4o-mini
-                - MEDIUM_REDPILL_MODEL=gpt-4o-mini
-                - LARGE_REDPILL_MODEL=gpt-4o-mini
-                - REDPILL_MODEL=gpt-4o-mini
-                - TWITTER_USERNAME=${TWITTER_USERNAME}
-                - TWITTER_PASSWORD=${TWITTER_PASSWORD}
-                - TWITTER_EMAIL=${TWITTER_EMAIL}
-                - TWITTER_POLL_INTERVAL=120
-              restart: always
-          volumes:
-            tee:
-          EOF
-          )
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-          JSON_PAYLOAD=$(jq -n --arg docker_compose "$DOCKER_COMPOSE" --arg password "${{ secrets.DOCKER_REGISTRY_PASSWORD }}" --arg registry "ghcr.io" --arg username "${{ secrets.DOCKER_REGISTRY_USERNAME }}" --arg encrypted_env "${{ secrets.ENCRYPTED_ENV }}" --arg pubkey "${{ secrets.APP_ENV_ENCRYPT_PUBKEY }}" --arg salt "${{ secrets.APP_ID_SALT }}" '{
-            name: "danny-eliza",
-            compose_manifest: {
-              name: "danny-eliza",
-              features: ["kms", "tproxy-net"],
-              docker_compose_file: $docker_compose
-            },
-            vcpu: 2,
-            memory: 4096,
-            disk_size: 40,
-            teepod_id: 2,
-            image: "dstack-dev-0.3.4",
-            advanced_features: {
-              tproxy: true,
-              kms: true,
-              public_sys_info: true,
-              public_logs: true,
-              docker_config: {
-                password: $password,
-                registry: $registry,
-                username: $username
-              },
-              listed: false
-            },
-            encrypted_env: $encrypted_env,
-            app_env_encrypt_pubkey: $pubkey,
-            app_id_salt: $salt
-          }')
-
-          curl -X POST https://cloud-api.phala.network/api/v1/cvms/from_cvm_configuration \
-            -H "Authorization: Bearer ${{ secrets.PHALA_CLOUD_API_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d "$JSON_PAYLOAD"
+      # Step 9: Run deploy script
+      - name: Run deploy script
+        env:
+          REDPILL_API_KEY: ${{ secrets.REDPILL_API_KEY }}
+          TWITTER_USERNAME: ${{ secrets.TWITTER_USERNAME }}
+          TWITTER_PASSWORD: ${{ secrets.TWITTER_PASSWORD }}
+          TWITTER_EMAIL: ${{ secrets.TWITTER_EMAIL }}
+          PHALA_CLOUD_API_KEY: ${{ secrets.PHALA_CLOUD_API_KEY }}
+          DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD}}
+          DOCKER_REGISTRY_USERNAME: ${{ secrets.DOCKER_REGISTRY_USERNAME }}
+        run: python deploy-cvm.py
