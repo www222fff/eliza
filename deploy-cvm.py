@@ -64,7 +64,7 @@ async def deploy(teepod_id: int, image: str) -> Dict[str, Any]:
     docker_compose = """
 services:
   eliza:
-    image: ghcr.io/${DOCKER_REGISTRY_USERNAME}/eliza:latest
+    image: ghcr.io/${DOCKER_REGISTRY_USERNAME_ENV}/eliza:latest
     container_name: eliza
     command:
       - /bin/sh
@@ -126,23 +126,23 @@ volumes:
 
     encrypted_envs = [
         {
-            "key": "REDPILL_API_KEY",
+            "key": "REDPILL_API_KEY_ENV",
             "value": os.getenv("REDPILL_API_KEY"),
         },
         {
-            "key": "TWITTER_USERNAME",
+            "key": "TWITTER_USERNAME_ENV",
             "value": os.getenv("TWITTER_USERNAME"),
         },
         {
-            "key": "TWITTER_PASSWORD",
+            "key": "TWITTER_PASSWORD_ENV",
             "value": os.getenv("TWITTER_PASSWORD"),
         },
         {
-            "key": "TWITTER_EMAIL",
+            "key": "TWITTER_EMAIL_ENV",
             "value": os.getenv("TWITTER_EMAIL"),
         },
         {
-            "key": "DOCKER_REGISTRY_USERNAME",
+            "key": "DOCKER_REGISTRY_USERNAME_ENV",
             "value": os.getenv("DOCKER_REGISTRY_USERNAME"),
         },
     ]
