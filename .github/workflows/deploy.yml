@@ -14,15 +14,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Cache pnpm dependencies
-      - name: Cache pnpm dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.pnpm-store
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-
-
       # Step 3: Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -43,8 +34,9 @@ jobs:
       # Step 6: Build Docker Image and Push
       - name: Build Docker Image and Push
         run: |
+          export DOCKER_BUILDKIT=1
           IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/eliza:latest
-          docker buildx build --cache-from type=local,src=/tmp/.buildx-cache --cache-to type=local,dest=/tmp/.buildx-cache -t $IMAGE_NAME --push .
+          docker buildx build --cache-from=type=local,src=/tmp/.buildx-cache --cache-to=type=local,dest=/tmp/.buildx-cache -t $IMAGE_NAME --push .
 
       # Step 7: Set up Python
       - name: Set up Python
@@ -68,4 +60,4 @@ jobs:
           PHALA_CLOUD_API_KEY: ${{ secrets.PHALA_CLOUD_API_KEY }}
           DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD}}
           DOCKER_REGISTRY_USERNAME: ${{ github.repository_owner }}
-        run: python deploy-cvm.py
+      #  run: python deploy-cvm.py
