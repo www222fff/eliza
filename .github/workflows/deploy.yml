@@ -51,13 +51,13 @@ jobs:
           pip install -r requirements.txt
 
       # Step 9: Run deploy script
-      - name: Run deploy script
-        env:
-          REDPILL_API_KEY: ${{ secrets.REDPILL_API_KEY }}
-          TWITTER_USERNAME: ${{ secrets.TWITTER_USERNAME }}
-          TWITTER_PASSWORD: ${{ secrets.TWITTER_PASSWORD }}
-          TWITTER_EMAIL: ${{ secrets.TWITTER_EMAIL }}
-          PHALA_CLOUD_API_KEY: ${{ secrets.PHALA_CLOUD_API_KEY }}
-          DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD}}
-          DOCKER_REGISTRY_USERNAME: ${{ github.repository_owner }}
+      #- name: Run deploy script
+      #  env:
+      #    REDPILL_API_KEY: ${{ secrets.REDPILL_API_KEY }}
+      #    TWITTER_USERNAME: ${{ secrets.TWITTER_USERNAME }}
+      #    TWITTER_PASSWORD: ${{ secrets.TWITTER_PASSWORD }}
+      #    TWITTER_EMAIL: ${{ secrets.TWITTER_EMAIL }}
+      #    PHALA_CLOUD_API_KEY: ${{ secrets.PHALA_CLOUD_API_KEY }}
+      #    DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD}}
+      #    DOCKER_REGISTRY_USERNAME: ${{ github.repository_owner }}
       #  run: python deploy-cvm.py
