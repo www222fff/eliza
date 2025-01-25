@@ -60,4 +60,4 @@ jobs:
           PHALA_CLOUD_API_KEY: ${{ secrets.PHALA_CLOUD_API_KEY }}
           DOCKER_REGISTRY_PASSWORD: ${{ secrets.DOCKER_REGISTRY_PASSWORD}}
           DOCKER_REGISTRY_USERNAME: ${{ github.repository_owner }}
-        run: python deploy-cvm.py
+        run: python deploy-phala-cvm.py

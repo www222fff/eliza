@@ -10,6 +10,10 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import x25519
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
+# Read character data
+character_path = Path(__file__)/'characters/phala.character.json'
+character_data = character_path.read_text()
+character_data_base64 = base64.b64encode(character_data.encode()).decode()
 
 # Phala API client setup
 class PhalaCVMClient:
@@ -71,7 +75,8 @@ services:
       - -c
       - |
         cd /app
-        pnpm start --character=characters/trump.character.json
+        echo $${CHARACTER_DATA} | base64 -d > characters/phala.character.json
+        pnpm run start --non-interactive --character=characters/phala.character.json
     ports:
       - "3000:3000"
     volumes:
@@ -87,6 +92,7 @@ services:
       - TWITTER_USERNAME=${TWITTER_USERNAME_ENV}
       - TWITTER_PASSWORD=${TWITTER_PASSWORD_ENV}
       - TWITTER_EMAIL=${TWITTER_EMAIL_ENV}
+      - CHARACTER_DATA=${CHARACTER_DATA}
       - TWITTER_POLL_INTERVAL=120
       - ENABLE_ACTION_PROCESSING=false
       - X_SERVER_URL=https://api.red-pill.ai/v1      
@@ -144,6 +150,10 @@ volumes:
         {
             "key": "DOCKER_REGISTRY_USERNAME_ENV",
             "value": os.getenv("DOCKER_REGISTRY_USERNAME"),
+        },
+        {
+            "key": "CHARACTER_DATA",
+            "value": character_data_base64,
         },
     ]
 
