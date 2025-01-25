@@ -17,15 +17,16 @@ WORKDIR /app
 # Copy package.json and other configuration files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc turbo.json ./
 
+# Copy the rest of the application code
+COPY agent ./agent
+COPY packages ./packages
+COPY scripts ./scripts
+
 # Install dependencies and build the project
 RUN pnpm install \
     && pnpm build-docker \
     && pnpm prune --prod
 
-# Copy the rest of the application code
-COPY agent ./agent
-COPY packages ./packages
-COPY scripts ./scripts
 COPY characters ./characters
 
 # Create a new stage for the final image
