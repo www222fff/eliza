@@ -38,6 +38,7 @@ RUN npm install -g pnpm@9.4.0 && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+RUN mkdir -p /app/characters
 
 # Copy built artifacts and production dependencies from the builder stage
 COPY --from=builder /app/package.json ./
