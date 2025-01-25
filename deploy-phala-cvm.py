@@ -75,8 +75,8 @@ services:
       - -c
       - |
         cd /app
-        echo $${CHARACTER_DATA} | base64 -d > characters/phala.character.json
-        pnpm run start --non-interactive --character=characters/phala.character.json
+        echo $${CHARACTER_DATA} | base64 -d > phala.character.json
+        pnpm run start --non-interactive --character=phala.character.json
     ports:
       - "3000:3000"
     volumes:
@@ -105,9 +105,9 @@ volumes:
     tee:"""
 
     vm_config = {
-        "name": "danny-eliza",
+        "name": "phala-eliza",
         "compose_manifest": {
-            "name": "danny-eliza",
+            "name": "phala-eliza",
             "features": ["kms", "tproxy-net"],
             "docker_compose_file": docker_compose,
         },
