@@ -10,7 +10,6 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import x25519
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-
 # API client setup
 class PhalaCVMClient:
     def __init__(self, base_url: str = "https://cloud-api.phala.network/api/v1"):
