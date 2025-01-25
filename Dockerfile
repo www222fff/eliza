@@ -27,8 +27,6 @@ RUN pnpm install \
     && pnpm build-docker \
     && pnpm prune --prod
 
-COPY characters ./characters
-
 # Create a new stage for the final image
 FROM node:23.3.0-slim
 
@@ -50,7 +48,6 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/agent ./agent
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/characters ./characters
 
 # Set the command to run the application
 CMD ["pnpm", "start"]
