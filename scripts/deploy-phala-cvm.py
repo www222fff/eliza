@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.asymmetric import x25519
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 # Read character data
-character_path = Path(__file__).parent/'characters/phala.character.json'
+character_path = Path(__file__).parent.parent/'characters/phala.character.json'
 character_data = character_path.read_text()
 character_data_base64 = base64.b64encode(character_data.encode()).decode()
 
@@ -85,15 +85,15 @@ services:
     environment:
       - TEE_MODE=PRODUCTION
       - REDPILL_API_KEY=${REDPILL_API_KEY_ENV}
-      - SMALL_REDPILL_MODEL=gpt-4o-mini
-      - MEDIUM_REDPILL_MODEL=gpt-4o-mini
-      - LARGE_REDPILL_MODEL=gpt-4o-mini
-      - REDPILL_MODEL=gpt-4o-mini
+      - SMALL_REDPILL_MODEL=deepseek/deepseek-chat
+      - MEDIUM_REDPILL_MODEL=deepseek/deepseek-chat
+      - LARGE_REDPILL_MODEL=deepseek/deepseek-chat
+      - REDPILL_MODEL=deepseek/deepseek-chat
       - TWITTER_USERNAME=${TWITTER_USERNAME_ENV}
       - TWITTER_PASSWORD=${TWITTER_PASSWORD_ENV}
       - TWITTER_EMAIL=${TWITTER_EMAIL_ENV}
       - CHARACTER_DATA=${CHARACTER_DATA}
-      - TWITTER_POLL_INTERVAL=120
+      - TWITTER_POLL_INTERVAL=1200
       - ENABLE_ACTION_PROCESSING=false
       - X_SERVER_URL=https://api.red-pill.ai/v1      
       - SOL_ADDRESS=So11111111111111111111111111111111111111112
