@@ -3,7 +3,7 @@ import json
 import base64
 import secrets
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
 
 import httpx
 from cryptography.hazmat.primitives import hashes
@@ -38,7 +38,7 @@ class PhalaCVMClient:
         response.raise_for_status()
         return response.json()
 
-    def get_existing_vm(self) -> Dict[str, Any] | None:
+    def get_existing_vm(self) -> Union[Dict[str, Any], None]:
         response = self.client.get(f"/cvms?user_id=0")
         response.raise_for_status()
         vms = response.json()
