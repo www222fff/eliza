@@ -202,9 +202,7 @@ async def deploy(teepod_id: int, image: str) -> Dict[str, Any]:
                     "runner": "docker-compose",
                     "version": "1.0.0"
                 },
-                "encrypted_env": encrypted_env,
-                "app_env_encrypt_pubkey": with_pubkey["app_env_encrypt_pubkey"],
-                "app_id_salt": with_pubkey["app_id_salt"],
+                "encrypted_env": ""
             })
         else:
             # Step 3: Create VM with encrypted environment variables
