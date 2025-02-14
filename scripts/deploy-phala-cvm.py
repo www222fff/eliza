@@ -9,6 +9,7 @@ import httpx
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import x25519
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import textwrap
 
 # Read character data
 character_path = Path(__file__).parent.parent/'characters/phala.character.json'
@@ -34,6 +35,22 @@ class PhalaCVMClient:
 
     def create_vm(self, config: Dict[str, Any]) -> Dict[str, Any]:
         response = self.client.post("/cvms/from_cvm_configuration", json=config)
+        response.raise_for_status()
+        return response.json()
+
+    def get_existing_vm(self) -> Dict[str, Any] | None:
+        response = self.client.get(f"/cvms?user_id=0")
+        response.raise_for_status()
+        vms = response.json()
+        if vms:
+            vm = vms[0]
+            return {
+                "app_id": vm["hosted"]["app_id"]
+            }
+        return None
+
+    def update_vm(self, identifier: str, compose_manifest: Dict[str, Any]) -> Dict[str, Any]:
+        response = self.client.put(f"/cvms/{identifier}/compose", json=compose_manifest)
         response.raise_for_status()
         return response.json()
 
@@ -65,44 +82,46 @@ def encrypt_env_vars(envs: List[Dict[str, str]], public_key_hex: str) -> str:
     return result.hex()
 
 async def deploy(teepod_id: int, image: str) -> Dict[str, Any]:
-    docker_compose = """
-services:
-  eliza:
-    image: ghcr.io/${DOCKER_REGISTRY_USERNAME_ENV}/eliza:latest
-    container_name: eliza
-    command:
-      - /bin/sh
-      - -c
-      - |
-        cd /app
-        echo $${CHARACTER_DATA} | base64 -d > characters/phala.character.json
-        pnpm run start --non-interactive --character=characters/phala.character.json
-    ports:
-      - "3000:3000"
-    volumes:
-      - /var/run/tappd.sock:/var/run/tappd.sock
-      - tee:/app/db.sqlite
-    environment:
-      - TEE_MODE=PRODUCTION
-      - REDPILL_API_KEY=${REDPILL_API_KEY_ENV}
-      - SMALL_REDPILL_MODEL=deepseek/deepseek-chat
-      - MEDIUM_REDPILL_MODEL=deepseek/deepseek-chat
-      - LARGE_REDPILL_MODEL=deepseek/deepseek-chat
-      - REDPILL_MODEL=deepseek/deepseek-chat
-      - TWITTER_USERNAME=${TWITTER_USERNAME_ENV}
-      - TWITTER_PASSWORD=${TWITTER_PASSWORD_ENV}
-      - TWITTER_EMAIL=${TWITTER_EMAIL_ENV}
-      - CHARACTER_DATA=${CHARACTER_DATA}
-      - TWITTER_POLL_INTERVAL=1200
-      - ENABLE_ACTION_PROCESSING=false
-      - X_SERVER_URL=https://api.red-pill.ai/v1      
-      - SOL_ADDRESS=So11111111111111111111111111111111111111112
-      - SLIPPAGE=1
-      - RPC_URL=https://api.mainnet-beta.solana.com
-      - WALLET_SECRET_SALT=secret_salt
-    restart: always
-volumes:
-    tee:"""
+
+    docker_compose = textwrap.dedent("""\
+        services:
+        eliza:
+            image: ghcr.io/${DOCKER_REGISTRY_USERNAME_ENV}/eliza:latest
+            container_name: eliza
+            command:
+            - /bin/sh
+            - -c
+            - |
+                cd /app
+                echo $${CHARACTER_DATA} | base64 -d > characters/phala.character.json
+                pnpm run start --non-interactive --character=characters/phala.character.json
+            ports:
+            - "3000:3000"
+            volumes:
+            - /var/run/tappd.sock:/var/run/tappd.sock
+            - tee:/app/db.sqlite
+            environment:
+            - TEE_MODE=PRODUCTION
+            - REDPILL_API_KEY=${REDPILL_API_KEY_ENV}
+            - SMALL_REDPILL_MODEL=deepseek/deepseek-chat
+            - MEDIUM_REDPILL_MODEL=deepseek/deepseek-chat
+            - LARGE_REDPILL_MODEL=deepseek/deepseek-chat
+            - REDPILL_MODEL=deepseek/deepseek-chat
+            - TWITTER_USERNAME=${TWITTER_USERNAME_ENV}
+            - TWITTER_PASSWORD=${TWITTER_PASSWORD_ENV}
+            - TWITTER_EMAIL=${TWITTER_EMAIL_ENV}
+            - CHARACTER_DATA=${CHARACTER_DATA}
+            - TWITTER_POLL_INTERVAL=1200
+            - ENABLE_ACTION_PROCESSING=false
+            - X_SERVER_URL=https://api.red-pill.ai/v1
+            - SOL_ADDRESS=So11111111111111111111111111111111111111112
+            - SLIPPAGE=1
+            - RPC_URL=https://api.mainnet-beta.solana.com
+            - WALLET_SECRET_SALT=secret_salt
+            restart: always
+        volumes:
+        tee:
+    """)
 
     vm_config = {
         "name": "phala-eliza",
@@ -159,7 +178,7 @@ volumes:
 
     try:
         client = PhalaCVMClient()
-        
+
         # Step 1: Get encryption public key
         with_pubkey = client.get_pubkey(vm_config)
 
@@ -169,13 +188,32 @@ volumes:
             with_pubkey["app_env_encrypt_pubkey"],
         )
 
-        # Step 3: Create VM with encrypted environment variables
-        response = client.create_vm({
-            **vm_config,
-            "encrypted_env": encrypted_env,
-            "app_env_encrypt_pubkey": with_pubkey["app_env_encrypt_pubkey"],
-            "app_id_salt": with_pubkey["app_id_salt"],
-        })
+        existing_vm = client.get_existing_vm()
+
+        if existing_vm:
+            identifier = "app_" + existing_vm["app_id"]
+            print(f"Updating existing VM: {identifier}")
+            response = client.update_vm(identifier, {
+                "compose_manifest": {
+                    "name": identifier,
+                    "features": ["kms", "tproxy-net"],
+                    "docker_compose_file": docker_compose,
+                    "manifest_version": 1,
+                    "runner": "docker-compose",
+                    "version": "1.0.0"
+                },
+                "encrypted_env": encrypted_env,
+                "app_env_encrypt_pubkey": with_pubkey["app_env_encrypt_pubkey"],
+                "app_id_salt": with_pubkey["app_id_salt"],
+            })
+        else:
+            # Step 3: Create VM with encrypted environment variables
+            response = client.create_vm({
+                **vm_config,
+                "encrypted_env": encrypted_env,
+                "app_env_encrypt_pubkey": with_pubkey["app_env_encrypt_pubkey"],
+                "app_id_salt": with_pubkey["app_id_salt"],
+            })
 
         return response
     except httpx.HTTPError as error:
@@ -201,4 +239,4 @@ async def main():
 
 if __name__ == "__main__":
     import asyncio
-    asyncio.run(main()) 
+    asyncio.run(main())
