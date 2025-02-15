@@ -83,7 +83,7 @@ def encrypt_env_vars(envs: List[Dict[str, str]], public_key_hex: str) -> str:
 
 async def deploy(teepod_id: int, image: str) -> Dict[str, Any]:
 
-    docker_compose = textwrap.dedent("""\
+    docker_compose = textwrap.dedent("""
         services:
         eliza:
             image: ghcr.io/${DOCKER_REGISTRY_USERNAME_ENV}/eliza:latest
