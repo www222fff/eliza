@@ -9,7 +9,6 @@ import httpx
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import x25519
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-import textwrap
 
 # Read character data
 character_path = Path(__file__).parent.parent/'characters/phala.character.json'
@@ -83,45 +82,44 @@ def encrypt_env_vars(envs: List[Dict[str, str]], public_key_hex: str) -> str:
 
 async def deploy(teepod_id: int, image: str) -> Dict[str, Any]:
 
-    docker_compose = textwrap.dedent("""
-        services:
-        eliza:
-            image: ghcr.io/${DOCKER_REGISTRY_USERNAME_ENV}/eliza:latest
-            container_name: eliza
-            command:
-            - /bin/sh
-            - -c
-            - |
-                cd /app
-                echo $${CHARACTER_DATA} | base64 -d > characters/phala.character.json
-                pnpm run start --non-interactive --character=characters/phala.character.json
-            ports:
-            - "3000:3000"
-            volumes:
-            - /var/run/tappd.sock:/var/run/tappd.sock
-            - tee:/app/db.sqlite
-            environment:
-            - TEE_MODE=PRODUCTION
-            - REDPILL_API_KEY=${REDPILL_API_KEY_ENV}
-            - SMALL_REDPILL_MODEL=deepseek/deepseek-chat
-            - MEDIUM_REDPILL_MODEL=deepseek/deepseek-chat
-            - LARGE_REDPILL_MODEL=deepseek/deepseek-chat
-            - REDPILL_MODEL=deepseek/deepseek-chat
-            - TWITTER_USERNAME=${TWITTER_USERNAME_ENV}
-            - TWITTER_PASSWORD=${TWITTER_PASSWORD_ENV}
-            - TWITTER_EMAIL=${TWITTER_EMAIL_ENV}
-            - CHARACTER_DATA=${CHARACTER_DATA}
-            - TWITTER_POLL_INTERVAL=1200
-            - ENABLE_ACTION_PROCESSING=false
-            - X_SERVER_URL=https://api.red-pill.ai/v1
-            - SOL_ADDRESS=So11111111111111111111111111111111111111112
-            - SLIPPAGE=1
-            - RPC_URL=https://api.mainnet-beta.solana.com
-            - WALLET_SECRET_SALT=secret_salt
-            restart: always
-        volumes:
-        tee:
-    """)
+    docker_compose = """
+services:
+  eliza:
+    image: ghcr.io/${DOCKER_REGISTRY_USERNAME_ENV}/eliza:latest
+    container_name: eliza
+    command:
+      - /bin/sh
+      - -c
+      - |
+        cd /app
+        echo $${CHARACTER_DATA} | base64 -d > characters/phala.character.json
+        pnpm run start --non-interactive --character=characters/phala.character.json
+    ports:
+      - "3000:3000"
+    volumes:
+      - /var/run/tappd.sock:/var/run/tappd.sock
+      - tee:/app/db.sqlite
+    environment:
+      - TEE_MODE=PRODUCTION
+      - REDPILL_API_KEY=${REDPILL_API_KEY_ENV}
+      - SMALL_REDPILL_MODEL=gpt-4o-mini
+      - MEDIUM_REDPILL_MODEL=gpt-4o-mini
+      - LARGE_REDPILL_MODEL=gpt-4o-mini
+      - REDPILL_MODEL=gpt-4o-mini
+      - TWITTER_USERNAME=${TWITTER_USERNAME_ENV}
+      - TWITTER_PASSWORD=${TWITTER_PASSWORD_ENV}
+      - TWITTER_EMAIL=${TWITTER_EMAIL_ENV}
+      - CHARACTER_DATA=${CHARACTER_DATA}
+      - TWITTER_POLL_INTERVAL=120
+      - ENABLE_ACTION_PROCESSING=false
+      - X_SERVER_URL=https://api.red-pill.ai/v1
+      - SOL_ADDRESS=So11111111111111111111111111111111111111112
+      - SLIPPAGE=1
+      - RPC_URL=https://api.mainnet-beta.solana.com
+      - WALLET_SECRET_SALT=secret_salt
+    restart: always
+volumes:
+    tee:"""
 
     vm_config = {
         "name": "phala-eliza",
