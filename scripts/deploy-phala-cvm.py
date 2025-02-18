@@ -31,6 +31,11 @@ class PhalaCVMClient:
         response = self.client.post("/cvms/pubkey/from_cvm_configuration", json=vm_config)
         response.raise_for_status()
         return response.json()
+    
+    def get_existed_pubkey(self, identifier: str) -> Dict[str, str]:
+        response = self.client.get(f"/cvms/{identifier}/compose")
+        response.raise_for_status()
+        return response.json()
 
     def create_vm(self, config: Dict[str, Any]) -> Dict[str, Any]:
         response = self.client.post("/cvms/from_cvm_configuration", json=config)
@@ -176,23 +181,21 @@ volumes:
 
     try:
         client = PhalaCVMClient()
-
-        # Step 1: Get encryption public key
-        with_pubkey = client.get_pubkey(vm_config)
-
-        print('pubkey:', with_pubkey["app_env_encrypt_pubkey"])
-
-        # Step 2: Encrypt environment variables
-        encrypted_env = encrypt_env_vars(
-            encrypted_envs,
-            with_pubkey["app_env_encrypt_pubkey"],
-        )
-
         existing_vm = client.get_existing_vm()
 
         if existing_vm:
             identifier = "app_" + existing_vm["app_id"]
             print(f"Updating existing VM: {identifier}")
+            # Step 1: Get encryption public key
+            compose = client.get_existed_pubkey(identifier)
+            print('pubkey:', compose["env_pubkey"])
+
+            # Step 2: Encrypt environment variables
+            encrypted_env = encrypt_env_vars(
+                encrypted_envs,
+                compose["env_pubkey"],
+            )
+            # Step 3: Update cvm
             response = client.update_vm(identifier, {
                 "compose_manifest": {
                     "name": identifier,
@@ -205,6 +208,16 @@ volumes:
                 "encrypted_env": encrypted_env
             })
         else:
+            # Step 1: Get new encryption public key
+            with_pubkey = client.get_pubkey(vm_config)
+
+            print('pubkey:', with_pubkey["app_env_encrypt_pubkey"])
+
+            # Step 2: Encrypt environment variables
+            encrypted_env = encrypt_env_vars(
+                encrypted_envs,
+                with_pubkey["app_env_encrypt_pubkey"],
+            )
             # Step 3: Create VM with encrypted environment variables
             response = client.create_vm({
                 **vm_config,
