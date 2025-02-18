@@ -180,6 +180,8 @@ volumes:
         # Step 1: Get encryption public key
         with_pubkey = client.get_pubkey(vm_config)
 
+        print('pubkey:', with_pubkey["app_env_encrypt_pubkey"])
+
         # Step 2: Encrypt environment variables
         encrypted_env = encrypt_env_vars(
             encrypted_envs,
@@ -200,7 +202,7 @@ volumes:
                     "runner": "docker-compose",
                     "version": "1.0.0"
                 },
-                "encrypted_env": ""
+                "encrypted_env": encrypted_env
             })
         else:
             # Step 3: Create VM with encrypted environment variables
