@@ -109,8 +109,8 @@ services:
       - -c
       - |
         cd /app
-        echo $${CHARACTER_DATA} | base64 -d > phala.character.json
-        pnpm run start --non-interactive --character=phala.character.json
+        echo $${CHARACTER_DATA} | base64 -d > /app/phala.character.json
+        pnpm run start --non-interactive --character=/app/phala.character.json
     ports:
       - "3000:3000"
     volumes:
