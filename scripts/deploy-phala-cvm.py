@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.asymmetric import x25519
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 # Read character data
-character_path = Path(__file__).parent.parent/'characters/phala.character.json'
+character_path = Path(__file__).parent.parent/'scripts/phala.character.json'
 character_data = character_path.read_text()
 character_data_base64 = base64.b64encode(character_data.encode()).decode()
 
