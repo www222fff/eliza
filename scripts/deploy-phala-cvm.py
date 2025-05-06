@@ -96,6 +96,7 @@ def encrypt_env_vars(envs: List[Dict[str, str]], public_key_hex: str) -> str:
     result = my_public_bytes + iv + encrypted_data
     return result.hex()
 
+# Phala cvm deploy
 async def deploy(teepod_id: int, image: str) -> Dict[str, Any]:
 
     docker_compose = """
