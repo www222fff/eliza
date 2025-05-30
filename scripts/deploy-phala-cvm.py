@@ -252,7 +252,7 @@ volumes:
 async def main():
     default_config = {
         "teepod_id": 2,
-        "image": "dstack-dev-0.3.5"
+        "image": "dstack-dev-0.3.6"
     }
 
     try:
