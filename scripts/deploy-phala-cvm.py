@@ -111,8 +111,6 @@ services:
       - |
         cd /app
         echo $${CHARACTER_DATA} | base64 -d > /app/characters/phala.character.json
-        sleep 1
-        cat /app/characters/phala.character.json
         pnpm run start --non-interactive --character=/app/characters/phala.character.json
     ports:
       - "3000:3000"
@@ -122,21 +120,16 @@ services:
     environment:
       - TEE_MODE=PRODUCTION
       - REDPILL_API_KEY=${REDPILL_API_KEY_ENV}
-      - SMALL_REDPILL_MODEL=deepseek/deepseek-chat
-      - MEDIUM_REDPILL_MODEL=deepseek/deepseek-chat
-      - LARGE_REDPILL_MODEL=deepseek/deepseek-chat
-      - REDPILL_MODEL=deepseek/deepseek-chat
+      - SMALL_REDPILL_MODEL=gpt-4o-mini
+      - MEDIUM_REDPILL_MODEL=gpt-4o-mini
+      - LARGE_REDPILL_MODEL=gpt-4o-mini
+      - REDPILL_MODEL=gpt-4o-mini
       - TWITTER_USERNAME=${TWITTER_USERNAME_ENV}
       - TWITTER_PASSWORD=${TWITTER_PASSWORD_ENV}
       - TWITTER_EMAIL=${TWITTER_EMAIL_ENV}
       - CHARACTER_DATA=${CHARACTER_DATA}
       - TWITTER_POLL_INTERVAL=120
       - ENABLE_ACTION_PROCESSING=false
-      - X_SERVER_URL=https://api.red-pill.ai/v1
-      - SOL_ADDRESS=So11111111111111111111111111111111111111112
-      - SLIPPAGE=1
-      - RPC_URL=https://api.mainnet-beta.solana.com
-      - WALLET_SECRET_SALT=secret_salt
     restart: always
 volumes:
     tee:"""
@@ -148,8 +141,8 @@ volumes:
             "features": ["kms", "tproxy-net"],
             "docker_compose_file": docker_compose,
         },
-        "vcpu": 1,
-        "memory": 2048,
+        "vcpu": 2,
+        "memory": 4096,
         "disk_size": 40,
         "teepod_id": teepod_id,
         "image": image,
