@@ -1,6 +1,6 @@
 {
     "name": "Irving",
-    "clients": ["twitter"],
+    "clients": ["Twitter"],
     "modelProvider": "redpill",
     "settings": {
         "voice": {
